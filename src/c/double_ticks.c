@@ -1,57 +1,58 @@
 #include <pebble.h>
 #include "utils.h"
 
-#define DEBUG_TIME (false)
+#define DEBUG_TIME (true)
 #define BUFFER_LEN (10)
 #define COL_BG (GColorBlack)
-#define COL_TK (GColorLightGray)
+#define COL_TK (GColorWhite)
 #define COL_HR (GColorPictonBlue)
 #define COL_MN (GColorOrange)
 
 static Window* s_window;
 static Layer* s_layer;
+static GPath* s_tri;
 static char s_buffer[BUFFER_LEN];
 
+static const GPathInfo TRI_POINTS = {
+  .num_points = 3,
+  .points = (GPoint []) {{0, 0}, {0, 0}, {0, 0}}
+};
+
+static void draw_tri(GContext* ctx, GPoint center, int radius, int height, int angle, int width_angle) {
+  int hh = height / 2;
+  int ha = width_angle / 2;
+  TRI_POINTS.points[0] = cartesian_from_polar(center, radius - hh, angle     );
+  TRI_POINTS.points[1] = cartesian_from_polar(center, radius     , angle - ha);
+  TRI_POINTS.points[2] = cartesian_from_polar(center, radius     , angle + ha);
+  gpath_draw_filled(ctx, s_tri);
+}
+
 static void draw_minute_ticks(GContext* ctx, GPoint center, int radius) {
-  graphics_context_set_stroke_width(ctx, 3);
+  graphics_context_set_stroke_width(ctx, 1);
+  graphics_context_set_fill_color(ctx, COL_TK);
+  graphics_context_set_stroke_color(ctx, COL_TK);
   int MAX = 60;
   for (int m = 0; m < MAX; m++) {
     int angle = m * TRIG_MAX_RATIO / MAX;
     if (m % 5 == 0) {
-      graphics_context_set_fill_color(ctx, GColorWhite);
-      graphics_fill_circle(
-        ctx,
-        cartesian_from_polar(center, radius, angle),
-        2
-      );
+      draw_tri(ctx, center, radius, 14, angle, DEG_TO_TRIGANGLE(6));
     } else {
-      graphics_context_set_stroke_color(ctx, COL_TK);
-      graphics_draw_pixel(
-        ctx,
-        cartesian_from_polar(center, radius, angle)
-      );
+      graphics_draw_pixel(ctx, cartesian_from_polar(center, radius, angle));
     }
   }
 }
 
 static void draw_hour_ticks(GContext* ctx, GPoint center, int radius) {
-  graphics_context_set_stroke_width(ctx, 3);
+  graphics_context_set_stroke_width(ctx, 1);
+  graphics_context_set_fill_color(ctx, COL_TK);
+  graphics_context_set_stroke_color(ctx, COL_TK);
   int MAX = 12 * 60;
-  for (int m = 0; m < MAX; m += 15) {
+  for (int m = 0; m < MAX; m += 30) {
     int angle = m * TRIG_MAX_RATIO / MAX;
     if (m % 60 == 0) {
-      graphics_context_set_fill_color(ctx, GColorWhite);
-      graphics_fill_circle(
-        ctx,
-        cartesian_from_polar(center, radius, angle),
-        2
-      );
+      draw_tri(ctx, center, radius, 14, angle, DEG_TO_TRIGANGLE(6));
     } else {
-      graphics_context_set_stroke_color(ctx, COL_TK);
-      graphics_draw_pixel(
-        ctx,
-        cartesian_from_polar(center, radius, angle)
-      );
+      graphics_draw_pixel(ctx, cartesian_from_polar(center, radius, angle));
     }
   }
 }
@@ -129,10 +130,12 @@ static void init(void) {
     .unload = window_unload,
   });
   window_stack_push(s_window, true);
+  s_tri = gpath_create(&TRI_POINTS);
   tick_timer_service_subscribe(DEBUG_TIME ? SECOND_UNIT : MINUTE_UNIT, tick_handler);
 }
 
 static void deinit(void) {
+  gpath_destroy(s_tri);
   window_destroy(s_window);
 }
 
