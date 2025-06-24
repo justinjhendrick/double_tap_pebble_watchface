@@ -4,7 +4,7 @@
 #define DEBUG_TIME (false)
 #define BUFFER_LEN (10)
 #define COL_BG COLOR_FALLBACK(GColorOxfordBlue,               GColorBlack)
-#define COL_LN COLOR_FALLBACK(GColorMidnightGreen,            GColorWhite)
+#define COL_LN COLOR_FALLBACK(GColorLiberty,            GColorWhite)
 #define COL_TK COLOR_FALLBACK(GColorLiberty,                  GColorWhite)
 #define COL_HR COLOR_FALLBACK(GColorCeleste,                  GColorWhite)
 #define COL_MN COLOR_FALLBACK(GColorRajah,                    GColorWhite)
@@ -14,21 +14,22 @@ static Layer* s_layer;
 static char s_buffer[BUFFER_LEN];
 
 static void draw_ticks(GContext* ctx, GPoint center, int vcr, int minute_tip, int hour_tip, int text_size) {
-  graphics_context_set_stroke_width(ctx, 1);
   int inf_radius = vcr * 2;
   int MAX = 12 * 60;
   for (int m = 0; m < MAX; m++) {
     int angle = m * TRIG_MAX_RATIO / MAX;
     if (m % 60 == 0) {
       // Hour lines
+      graphics_context_set_stroke_width(ctx, 3);
       graphics_context_set_stroke_color(ctx, COL_LN);
       graphics_draw_line(ctx, center, cartesian_from_polar(center, inf_radius, angle));
     } else if (m % 30 == 0) {
       // Half hour dots
-      graphics_context_set_fill_color(ctx, COL_TK);
-      graphics_fill_circle(ctx, cartesian_from_polar(center, hour_tip, angle), 1);
+      //graphics_context_set_fill_color(ctx, COL_TK);
+      //graphics_fill_circle(ctx, cartesian_from_polar(center, hour_tip, angle), 1);
     } else if (m % 12 == 0) {
       // Minute ticks
+      graphics_context_set_stroke_width(ctx, 1);
       graphics_context_set_stroke_color(ctx, COL_TK);
       graphics_draw_line(ctx, cartesian_from_polar(center, minute_tip, angle), cartesian_from_polar(center, inf_radius, angle));
     }
@@ -107,8 +108,8 @@ static void update_layer(Layer* layer, GContext* ctx) {
   int hour_tip = minute_tip * 6 / 10;
   GPoint center = grect_center_point(&bounds);
   draw_ticks(ctx, center, vcr, minute_tip, hour_tip, text_size);
-  draw_minute_hand(ctx, center, minute_tip, now);
-  draw_hour_hand(ctx, center, hour_tip, now);
+  draw_minute_hand(ctx, center, vcr * 2, now);
+  draw_hour_hand(ctx, center, minute_tip, now);
 }
 
 static void window_load(Window* window) {
