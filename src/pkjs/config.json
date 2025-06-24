@@ -1,0 +1,8 @@
+[
+  {
+    "type": "color",
+    "messageKey": "background",
+    "defaultValue": "ff0000",
+    "label": "Background Color"
+  }
+]

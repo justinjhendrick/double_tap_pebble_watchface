@@ -2,26 +2,28 @@
   "name": "double_ticks",
   "author": "justinjhendrick",
   "version": "1.0.0",
-  "keywords": ["pebble-app"],
+  "keywords": [
+    "pebble-app"
+  ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "pebble-clay": "^1.0.4"
+  },
   "pebble": {
     "displayName": "double_ticks",
     "uuid": "10dc25d7-7512-4f40-995d-bcd7eceba568",
     "sdkVersion": "3",
     "enableMultiJS": true,
     "targetPlatforms": [
-      "aplite",
       "basalt",
       "chalk",
-      "diorite",
       "emery"
     ],
     "watchapp": {
-      "watchface": true 
+      "watchface": true
     },
     "messageKeys": [
-      "dummy"
+      "background"
     ],
     "resources": {
       "media": []
