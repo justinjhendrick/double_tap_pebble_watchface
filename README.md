@@ -6,7 +6,7 @@
 
 ![screenshot](screenshot_basalt.png)
 
-### Chalk 
+### Chalk
 
 ![screenshot](screenshot_chalk.png)
 
