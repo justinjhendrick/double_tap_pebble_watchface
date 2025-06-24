@@ -2,9 +2,9 @@
 
 ## Screenshots
 
-### Aplite 
+### Basalt
 
-![screenshot](screenshot_aplite.png)
+![screenshot](screenshot_basalt.png)
 
 ### Chalk 
 
