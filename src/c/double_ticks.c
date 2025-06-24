@@ -3,74 +3,88 @@
 
 #define DEBUG_TIME (false)
 #define BUFFER_LEN (10)
-#define COL_BG COLOR_FALLBACK(GColorOxfordBlue,               GColorBlack)
-#define COL_LN COLOR_FALLBACK(GColorLiberty,            GColorWhite)
-#define COL_TK COLOR_FALLBACK(GColorLiberty,                  GColorWhite)
-#define COL_HR COLOR_FALLBACK(GColorCeleste,                  GColorWhite)
-#define COL_MN COLOR_FALLBACK(GColorRajah,                    GColorWhite)
+
+#define SETTINGS_KEY 1
+
+// A structure containing our settings
+typedef struct ClaySettings {
+  GColor color_background;
+  GColor color_major_tick;
+  GColor color_minor_minute_tick;
+  GColor color_minor_hour_tick;
+  GColor color_hour;
+  GColor color_minute;
+  // TODO: separate out hour number color from hand color
+  int width_major_tick;
+  int width_minor_tick;
+  // TODO hand width
+  // TODO hand length multiplier for vcr
+} __attribute__((__packed__)) ClaySettings;
+
+ClaySettings settings;
+
+// Initialize the default settings
+static void default_settings() {
+  settings.color_background = GColorOxfordBlue;
+  settings.color_major_tick = GColorLiberty;
+  settings.color_minor_minute_tick = GColorLiberty;
+  settings.color_minor_hour_tick = GColorLiberty;
+  settings.color_hour = GColorCeleste;
+  settings.color_minute = GColorRajah;
+  settings.width_major_tick = 3;
+  settings.width_minor_tick = 1;
+}
 
 static Window* s_window;
 static Layer* s_layer;
 static char s_buffer[BUFFER_LEN];
 
 static void draw_ticks(GContext* ctx, GPoint center, int vcr, int minute_tip, int hour_tip, int text_size) {
+  int hour_mid_radius = (hour_tip + minute_tip) / 2;
+  int minute_mid_radius = (minute_tip + vcr) / 2 + 1;
   int inf_radius = vcr * 2;
   int MAX = 12 * 60;
   for (int m = 0; m < MAX; m++) {
     int angle = m * TRIG_MAX_RATIO / MAX;
     if (m % 60 == 0) {
       // Hour lines
-      graphics_context_set_stroke_width(ctx, 3);
-      graphics_context_set_stroke_color(ctx, COL_LN);
+      graphics_context_set_stroke_width(ctx, settings.width_major_tick);
+      graphics_context_set_stroke_color(ctx, settings.color_major_tick);
       graphics_draw_line(ctx, center, cartesian_from_polar(center, inf_radius, angle));
     } else if (m % 30 == 0) {
       // Half hour dots
-      //graphics_context_set_fill_color(ctx, COL_TK);
-      //graphics_fill_circle(ctx, cartesian_from_polar(center, hour_tip, angle), 1);
+      graphics_context_set_fill_color(ctx, settings.color_minor_hour_tick);
+      graphics_fill_circle(ctx, cartesian_from_polar(center, minute_tip - 6, angle), 1);
     } else if (m % 12 == 0) {
       // Minute ticks
-      graphics_context_set_stroke_width(ctx, 1);
-      graphics_context_set_stroke_color(ctx, COL_TK);
+      graphics_context_set_stroke_width(ctx, settings.width_minor_tick);
+      graphics_context_set_stroke_color(ctx, settings.color_minor_minute_tick);
       graphics_draw_line(ctx, cartesian_from_polar(center, minute_tip, angle), cartesian_from_polar(center, inf_radius, angle));
     }
   }
 
   // Hour numbers
-  graphics_context_set_text_color(ctx, COL_HR);
-  int hour_mid_radius = (hour_tip + minute_tip) / 2;
+  graphics_context_set_text_color(ctx, settings.color_hour);
   MAX = 12;
   for (int h = 2; h <= MAX; h += 2) {
     int angle = h * TRIG_MAX_RATIO / MAX;
     snprintf(s_buffer, BUFFER_LEN, "%d", h);
     GPoint text_center = cartesian_from_polar(center, hour_mid_radius, angle);
-    if (h < 20) {
-      // GTextCenterAlignment is a liar
-      text_center.x++;
-    }
+    // GTextCenterAlignment is a liar
+    text_center.x++;
     GRect bbox = rect_from_midpoint(text_center, GSize(text_size, text_size));
     draw_text_midalign(ctx, s_buffer, bbox, GTextAlignmentCenter, true);
-    // DEBUG code below
-    //graphics_context_set_stroke_color(ctx, GColorRed);
-    //graphics_draw_pixel(ctx, text_center);
   }
 
   // minute numbers
-  graphics_context_set_text_color(ctx, COL_MN);
-  int minute_mid_radius = (minute_tip + vcr) / 2;
+  graphics_context_set_text_color(ctx, settings.color_minute);
   MAX = 60;
   for (int m = 5; m < MAX; m += 10) {
     int angle = m * TRIG_MAX_RATIO / MAX;
     snprintf(s_buffer, BUFFER_LEN, "%d", m);
     GPoint text_center = cartesian_from_polar(center, minute_mid_radius, angle);
-    if (m < 20) {
-      // GTextCenterAlignment is a liar
-      text_center.x++;
-    }
     GRect bbox = rect_from_midpoint(text_center, GSize(text_size, text_size));
     draw_text_midalign(ctx, s_buffer, bbox, GTextAlignmentCenter, true);
-    // DEBUG code below
-    //graphics_context_set_stroke_color(ctx, GColorRed);
-    //graphics_draw_pixel(ctx, text_center);
   }
 }
 
@@ -80,7 +94,7 @@ static void draw_minute_hand(GContext* ctx, GPoint center, int radius, struct tm
   int angle = current_mins * TRIG_MAX_ANGLE / total_mins;
   GPoint tip = cartesian_from_polar(center, radius - 4, angle);
   graphics_context_set_stroke_width(ctx, 5);
-  graphics_context_set_stroke_color(ctx, COL_MN);
+  graphics_context_set_stroke_color(ctx, settings.color_minute);
   graphics_draw_line(ctx, center, tip);
 }
 
@@ -90,7 +104,7 @@ static void draw_hour_hand(GContext* ctx, GPoint center, int radius, struct tm* 
   int angle = current_mins * TRIG_MAX_ANGLE / total_mins;
   GPoint tip = cartesian_from_polar(center, radius - 4, angle);
   graphics_context_set_stroke_width(ctx, 5);
-  graphics_context_set_stroke_color(ctx, COL_HR);
+  graphics_context_set_stroke_color(ctx, settings.color_hour);
   graphics_draw_line(ctx, center, tip);
 }
 
@@ -102,20 +116,22 @@ static void update_layer(Layer* layer, GContext* ctx) {
   }
 
   GRect bounds = layer_get_bounds(layer);
+  graphics_context_set_fill_color(ctx, settings.color_background);
+  graphics_fill_rect(ctx, bounds, 0, GCornerNone);
   int vcr = min(bounds.size.h, bounds.size.w) / 2 - PBL_IF_ROUND_ELSE(4, 2);
   int text_size = vcr * 7 / 20;
   int minute_tip = vcr - text_size * 2 / 3; 
-  int hour_tip = minute_tip * 6 / 10;
+  int hour_tip = minute_tip * 4 / 10;
   GPoint center = grect_center_point(&bounds);
   draw_ticks(ctx, center, vcr, minute_tip, hour_tip, text_size);
-  draw_minute_hand(ctx, center, vcr * 2, now);
-  draw_hour_hand(ctx, center, minute_tip, now);
+  draw_minute_hand(ctx, center, vcr + 2, now);
+  draw_hour_hand(ctx, center, minute_tip - 6, now);
 }
 
 static void window_load(Window* window) {
   Layer* window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
-  window_set_background_color(s_window, COL_BG);
+  window_set_background_color(s_window, settings.color_background);
   s_layer = layer_create(bounds);
   layer_set_update_proc(s_layer, update_layer);
   layer_add_child(window_layer, s_layer);
@@ -129,7 +145,39 @@ static void tick_handler(struct tm* now, TimeUnits units_changed) {
   layer_mark_dirty(window_get_root_layer(s_window));
 }
 
+// Read settings from persistent storage
+static void load_settings() {
+  // Load the default settings
+  default_settings();
+  // Read settings from persistent storage, if they exist
+  persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+// Save the settings to persistent storage
+static void save_settings() {
+  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+  // Update the display based on new settings
+  layer_mark_dirty(window_get_root_layer(s_window));
+}
+
+static void inbox_received_handler(DictionaryIterator *iter, void *context) {
+  Tuple *t;
+  if ((t = dict_find(iter, MESSAGE_KEY_color_background       ))) { settings.color_background         = GColorFromHEX(t->value->int32); }
+  if ((t = dict_find(iter, MESSAGE_KEY_color_major_tick       ))) { settings.color_major_tick         = GColorFromHEX(t->value->int32); }
+  if ((t = dict_find(iter, MESSAGE_KEY_color_minor_minute_tick))) { settings.color_minor_minute_tick  = GColorFromHEX(t->value->int32); }
+  if ((t = dict_find(iter, MESSAGE_KEY_color_minor_hour_tick  ))) { settings.color_minor_hour_tick    = GColorFromHEX(t->value->int32); }
+  if ((t = dict_find(iter, MESSAGE_KEY_color_hour             ))) { settings.color_hour               = GColorFromHEX(t->value->int32); }
+  if ((t = dict_find(iter, MESSAGE_KEY_color_minute           ))) { settings.color_minute             = GColorFromHEX(t->value->int32); }
+  if ((t = dict_find(iter, MESSAGE_KEY_width_major_tick       ))) { settings.width_major_tick         = t->value->int32; }
+  if ((t = dict_find(iter, MESSAGE_KEY_width_minor_tick       ))) { settings.width_minor_tick         = t->value->int32; }
+  save_settings();
+}
+
 static void init(void) {
+  load_settings();
+  app_message_register_inbox_received(inbox_received_handler);
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+  
   s_window = window_create();
   window_set_window_handlers(s_window, (WindowHandlers) {
     .load = window_load,
@@ -140,7 +188,9 @@ static void init(void) {
 }
 
 static void deinit(void) {
-  window_destroy(s_window);
+  if (s_window) {
+    window_destroy(s_window);
+  }
 }
 
 int main(void) {

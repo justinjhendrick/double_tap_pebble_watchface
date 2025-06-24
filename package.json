@@ -10,7 +10,7 @@
     "pebble-clay": "^1.0.4"
   },
   "pebble": {
-    "displayName": "double_ticks",
+    "displayName": "Double Dial",
     "uuid": "10dc25d7-7512-4f40-995d-bcd7eceba568",
     "sdkVersion": "3",
     "enableMultiJS": true,
@@ -22,8 +22,18 @@
     "watchapp": {
       "watchface": true
     },
+    "capabilities": [
+      "configurable"
+    ],
     "messageKeys": [
-      "background"
+      "color_background",
+      "color_major_tick",
+      "color_minor_minute_tick",
+      "color_minor_hour_tick",
+      "color_hour",
+      "color_minute",
+      "width_major_tick",
+      "width_minor_tick"
     ],
     "resources": {
       "media": []
