@@ -5,9 +5,11 @@
 #define BUFFER_LEN (10)
 #define BW (PBL_IF_COLOR_ELSE(false, true))
 
+// TODO: define another key for settings version
+// so we can cleanly handle version upgrades
+// because the persistent storage is kept across upgrade.
 #define SETTINGS_KEY 1
 
-// A structure containing our settings
 typedef struct ClaySettings {
   GColor color_background;
   GColor color_major_tick;
@@ -15,16 +17,15 @@ typedef struct ClaySettings {
   GColor color_minor_hour_tick;
   GColor color_hour;
   GColor color_minute;
-  // TODO: separate out hour number color from hand color
+  // TODO? separate out hour number color from hand color
   int width_major_tick;
   int width_minor_tick;
-  // TODO hand width
-  // TODO hand length multiplier for vcr
+  // TODO? hand width
+  // TODO? hand length multiplier for vcr
 } __attribute__((__packed__)) ClaySettings;
 
 ClaySettings settings;
 
-// Initialize the default settings
 static void default_settings() {
   settings.color_background = COLOR_FALLBACK(GColorOxfordBlue, GColorBlack);
   settings.color_major_tick = COLOR_FALLBACK(GColorLiberty, GColorWhite);
@@ -39,6 +40,34 @@ static void default_settings() {
 static Window* s_window;
 static Layer* s_layer;
 static char s_buffer[BUFFER_LEN];
+static GPath* s_arrow;
+
+static const GPathInfo ARROW_POINTS = {
+  .num_points = 4,
+  .points = (GPoint []) {{0, 0}, {0, 0}, {0, 0}, {0, 0}}
+};
+
+static void change_arrow_size(int w, int h) {
+  ARROW_POINTS.points[0].x = 0;
+  ARROW_POINTS.points[0].y = 0;
+
+  ARROW_POINTS.points[1].x = w / 2;
+  ARROW_POINTS.points[1].y = -h / 3;
+
+  ARROW_POINTS.points[2].x = 0;
+  ARROW_POINTS.points[2].y = -h;
+
+  ARROW_POINTS.points[3].x = -w / 2;
+  ARROW_POINTS.points[3].y = -h / 3;
+}
+
+static void draw_diamond_hand(GContext* ctx, GPoint center, int angle, int hand_width, int hand_length) {
+  change_arrow_size(hand_width, hand_length);
+  gpath_rotate_to(s_arrow, angle);
+  gpath_move_to(s_arrow, center);
+  gpath_draw_outline(ctx, s_arrow);
+  graphics_fill_circle(ctx, center, 5);
+}
 
 static void draw_ticks(GContext* ctx, GPoint center, int vcr, int minute_tip, int hour_tip, int text_size) {
   int hour_mid_radius = (hour_tip + minute_tip) / 2;
@@ -105,20 +134,21 @@ static void draw_minute_hand(GContext* ctx, GPoint center, int radius, struct tm
   int total_mins = 60;
   int current_mins = now->tm_min;
   int angle = current_mins * TRIG_MAX_ANGLE / total_mins;
+  GPoint counter_balance = cartesian_from_polar(center, -9, angle);
   GPoint tip = cartesian_from_polar(center, radius - 4, angle);
   graphics_context_set_stroke_width(ctx, 5);
   graphics_context_set_stroke_color(ctx, settings.color_minute);
-  graphics_draw_line(ctx, center, tip);
+  graphics_draw_line(ctx, counter_balance, tip);
 }
 
 static void draw_hour_hand(GContext* ctx, GPoint center, int radius, struct tm* now) {
   int total_mins = 12 * 60;
   int current_mins = now->tm_hour * 60 + now->tm_min;
   int angle = current_mins * TRIG_MAX_ANGLE / total_mins;
-  GPoint tip = cartesian_from_polar(center, radius - 4, angle);
-  graphics_context_set_stroke_width(ctx, 5);
+  graphics_context_set_stroke_width(ctx, 3);
   graphics_context_set_stroke_color(ctx, settings.color_hour);
-  graphics_draw_line(ctx, center, tip);
+  graphics_context_set_fill_color(ctx, settings.color_hour);
+  draw_diamond_hand(ctx, center, angle, radius * 4 / 20 + 1, radius - 4);
 }
 
 static void update_layer(Layer* layer, GContext* ctx) {
@@ -158,19 +188,13 @@ static void tick_handler(struct tm* now, TimeUnits units_changed) {
   layer_mark_dirty(window_get_root_layer(s_window));
 }
 
-// Read settings from persistent storage
 static void load_settings() {
-  // Load the default settings
   default_settings();
-  // Read settings from persistent storage, if they exist
   persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
 }
 
-// Save the settings to persistent storage
 static void save_settings() {
   persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
-  // Update the display based on new settings
-  layer_mark_dirty(window_get_root_layer(s_window));
 }
 
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
@@ -184,6 +208,8 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
   if ((t = dict_find(iter, MESSAGE_KEY_width_major_tick       ))) { settings.width_major_tick         = t->value->int32; }
   if ((t = dict_find(iter, MESSAGE_KEY_width_minor_tick       ))) { settings.width_minor_tick         = t->value->int32; }
   save_settings();
+  // Update the display based on new settings
+  layer_mark_dirty(window_get_root_layer(s_window));
 }
 
 static void init(void) {
@@ -197,6 +223,7 @@ static void init(void) {
     .unload = window_unload,
   });
   window_stack_push(s_window, true);
+  s_arrow = gpath_create(&ARROW_POINTS);
   tick_timer_service_subscribe(DEBUG_TIME ? SECOND_UNIT : MINUTE_UNIT, tick_handler);
 }
 
