@@ -3,6 +3,7 @@
 
 #define DEBUG_TIME (false)
 #define BUFFER_LEN (10)
+#define BW (PBL_IF_COLOR_ELSE(false, true))
 
 #define SETTINGS_KEY 1
 
@@ -25,12 +26,12 @@ ClaySettings settings;
 
 // Initialize the default settings
 static void default_settings() {
-  settings.color_background = GColorOxfordBlue;
-  settings.color_major_tick = GColorLiberty;
-  settings.color_minor_minute_tick = GColorLiberty;
-  settings.color_minor_hour_tick = GColorLiberty;
-  settings.color_hour = GColorCeleste;
-  settings.color_minute = GColorRajah;
+  settings.color_background = COLOR_FALLBACK(GColorOxfordBlue, GColorBlack);
+  settings.color_major_tick = COLOR_FALLBACK(GColorLiberty, GColorWhite);
+  settings.color_minor_minute_tick = COLOR_FALLBACK(GColorLiberty, GColorWhite);
+  settings.color_minor_hour_tick = COLOR_FALLBACK(GColorLiberty, GColorWhite);
+  settings.color_hour = COLOR_FALLBACK(GColorCeleste, GColorWhite);
+  settings.color_minute = COLOR_FALLBACK(GColorRajah, GColorWhite);
   settings.width_major_tick = 3;
   settings.width_minor_tick = 1;
 }
@@ -73,6 +74,10 @@ static void draw_ticks(GContext* ctx, GPoint center, int vcr, int minute_tip, in
     // GTextCenterAlignment is a liar
     text_center.x++;
     GRect bbox = rect_from_midpoint(text_center, GSize(text_size, text_size));
+    if (BW) {
+       graphics_context_set_fill_color(ctx, settings.color_background);
+       graphics_fill_circle(ctx, text_center, text_size / 2);
+    }
     draw_text_midalign(ctx, s_buffer, bbox, GTextAlignmentCenter, true);
   }
 
@@ -84,6 +89,10 @@ static void draw_ticks(GContext* ctx, GPoint center, int vcr, int minute_tip, in
     snprintf(s_buffer, BUFFER_LEN, "%d", m);
     GPoint text_center = cartesian_from_polar(center, minute_mid_radius, angle);
     GRect bbox = rect_from_midpoint(text_center, GSize(text_size, text_size));
+    if (BW) {
+       graphics_context_set_fill_color(ctx, settings.color_background);
+       graphics_fill_circle(ctx, text_center, text_size / 2);
+    }
     draw_text_midalign(ctx, s_buffer, bbox, GTextAlignmentCenter, true);
   }
 }
