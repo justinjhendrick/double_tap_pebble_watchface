@@ -51,7 +51,11 @@ static void draw_ticks(GContext* ctx, GPoint center, int vcr, int minute_tip, in
       // Hour lines
       graphics_context_set_stroke_width(ctx, settings.width_major_tick);
       graphics_context_set_stroke_color(ctx, settings.color_major_tick);
-      graphics_draw_line(ctx, center, cartesian_from_polar(center, inf_radius, angle));
+      graphics_draw_line(
+        ctx,
+        PBL_IF_COLOR_ELSE(center, cartesian_from_polar(center, minute_tip, angle)),
+        cartesian_from_polar(center, inf_radius, angle)
+      );
     } else if (m % 30 == 0) {
       // Half hour dots
       graphics_context_set_fill_color(ctx, settings.color_minor_hour_tick);
